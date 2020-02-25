@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/my/repo/nano"
+	"github.com/domWinter/go-nano"
 )
 
 type Answer struct {
