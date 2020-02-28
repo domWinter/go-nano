@@ -63,9 +63,8 @@ func main() {
 	svc := nano.NewService("127.0.0.1", 8080, "127.0.0.1", 9999)
 
 	svc.Add("role:math,cmd:positive", func(body []byte) ([]byte, error) {
-	    var msg ServiceRequest
-        json.Unmarshal(body, &msg)
-        
+		var msg ServiceRequest
+        	json.Unmarshal(body, &msg)
 		result := msg.Value > 0
 		answer := ServiceAnswer{result}
 		answerJSON, _ := json.Marshal(answer)
