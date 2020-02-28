@@ -8,7 +8,7 @@ This framework covers routing of pattern
 based messages to distributed services via pattern matching and caches. <br>
 With go nano you do not have to worry about how messages are exchanged between your 
 services so that you can focus on building your busniess logic instead. In addition, 
-Go nano was built with the intention to be deplyoed on top of container orchestation systems like Kubernetes or Docker and thus supporting scaling via loadbalancing of the underleying
+Go nano was built with the intention to be deployed on top of container orchestation systems like Kubernetes or Docker and thus supporting scaling via loadbalancing of the underleying
 platform.
 
 **Current Status:** *Under active development*
@@ -63,8 +63,7 @@ func main() {
 	svc := nano.NewService("127.0.0.1", 8080, "127.0.0.1", 9999)
 
 	svc.Add("role:math,cmd:positive", func(body []byte) ([]byte, error) {
-
-		var msg ServiceRequest
+	    var msg ServiceRequest
         json.Unmarshal(body, &msg)
         
 		result := msg.Value > 0
