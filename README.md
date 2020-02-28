@@ -1,8 +1,7 @@
 # Go nano
 ![Build](https://github.com/domWinter/go-nano/workflows/Build/badge.svg)
 
-**Go nano** - Nano service framwork for building nanoservices 
-(not monolithic microservices) in Go. 
+**Go nano** - Framwork for building nanoservices (not monolithic microservices) in Go. 
 
 This framework covers routing of pattern
 based messages to distributed services via pattern matching and caches. <br>
