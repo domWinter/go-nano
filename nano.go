@@ -14,15 +14,11 @@ import (
 	"github.com/go-redis/redis/v7"
 )
 
-type Message struct {
-	Pattern        string `json:"Pattern"`
-	ServiceRequest bool   `json:"ServiceRequest"`
-}
-
 // ############################################################################ //
-// ################################ Client #################################### //
+// ################################ Service ################################### //
 // ############################################################################ //
 
+// Service struct with radix tree as local cache
 type Service struct {
 	Cache          radix.Tree
 	Pattern        string `json:"Pattern"`
@@ -32,11 +28,17 @@ type Service struct {
 	ServerPort     int    `json:"ServerPort"`
 }
 
-type ServiceAnswer struct {
+type serviceMessage struct {
+	Pattern        string `json:"Pattern"`
+	ServiceRequest bool   `json:"ServiceRequest"`
+}
+
+type serviceAnswer struct {
 	Service Service `json:"Service"`
 	Payload []byte  `json:"Payload"`
 }
 
+// NewService returns a initialized service struct
 func NewService(ServiceAddress string, ServicePort int, ServerAddress string, ServerPort int) *Service {
 	svc := new(Service)
 	cache := radix.New()
@@ -45,21 +47,25 @@ func NewService(ServiceAddress string, ServicePort int, ServerAddress string, Se
 	svc.ServicePort = ServicePort
 	svc.ServerAddress = ServerAddress + ":" + strconv.Itoa(ServerPort)
 	svc.ServerPort = ServerPort
+	log.Println("Nano service successfully initialised!")
+	log.Println("Listening on:", svc.ServiceAddress)
+	log.Println("Nano server at:", svc.ServerAddress)
 	return svc
 }
 
-func (self Service) Act(json_msg []byte, pattern string) ([]byte, error) {
+//Act sends a query to the defined microservice pattern
+func (svc Service) Act(jsonMsg []byte, pattern string) ([]byte, error) {
 
 	var body []byte
 	cacheNeedsUpdate := false
 
 	// Lookup cache
-	cacheMatchedPattern, iface, cacheHit := self.Cache.LongestPrefix(pattern)
+	cacheMatchedPattern, iface, cacheHit := svc.Cache.LongestPrefix(pattern)
 
 	if !cacheHit {
 		// Cache miss, query nano server for address resolving
-		url := "http://" + self.ServerAddress
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(json_msg))
+		url := "http://" + svc.ServerAddress
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonMsg))
 		if err != nil {
 			arr := make([]byte, 0)
 			return arr, err
@@ -80,9 +86,9 @@ func (self Service) Act(json_msg []byte, pattern string) ([]byte, error) {
 		}
 	} else {
 		// Cache hit, query cache resolved service address
-		svc, _ := iface.(Service)
-		url := "http://" + svc.ServiceAddress
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(json_msg))
+		resolvedSvc, _ := iface.(Service)
+		url := "http://" + resolvedSvc.ServiceAddress
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonMsg))
 		if err != nil {
 			arr := make([]byte, 0)
 			return arr, err
@@ -92,9 +98,9 @@ func (self Service) Act(json_msg []byte, pattern string) ([]byte, error) {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			// Request to cache resolved address failed, second option server
-			url := "http://" + svc.ServerAddress
-			req, err = http.NewRequest("POST", url, bytes.NewBuffer(json_msg))
+			// Request to cache resolved address failed, second option nano server
+			url := "http://" + resolvedSvc.ServerAddress
+			req, err = http.NewRequest("POST", url, bytes.NewBuffer(jsonMsg))
 			if err != nil {
 				arr := make([]byte, 0)
 				return arr, err
@@ -104,7 +110,7 @@ func (self Service) Act(json_msg []byte, pattern string) ([]byte, error) {
 			resp, err = client.Do(req)
 			if err != nil {
 				// Both requests failed, delete cache entry and return
-				go self.Cache.Delete(cacheMatchedPattern)
+				go svc.Cache.Delete(cacheMatchedPattern)
 				arr := make([]byte, 0)
 				return arr, err
 			}
@@ -120,27 +126,28 @@ func (self Service) Act(json_msg []byte, pattern string) ([]byte, error) {
 		}
 	}
 
-	var result ServiceAnswer
+	var result serviceAnswer
 	json.Unmarshal(body, &result)
 
 	// Insert or update cache
 	if !cacheHit && result.Service.ServiceAddress != "" || cacheNeedsUpdate {
-		go self.Cache.Insert(result.Service.Pattern, result.Service)
+		go svc.Cache.Insert(result.Service.Pattern, result.Service)
 	}
 
 	return result.Payload, nil
 
 }
 
-func (self Service) Add(pattern string, handle func([]byte) ([]byte, error)) {
+//Add creates a new webservice handler that processes request with refered handle function
+func (svc Service) Add(pattern string, handle func([]byte) ([]byte, error)) {
 
 	// Store pattern
-	self.Pattern = pattern
+	svc.Pattern = pattern
 
 	// Contact server for registering
-	svcJson, _ := json.Marshal(self)
-	url := "http://" + self.ServerAddress + "/register"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJson))
+	svcJSON, _ := json.Marshal(svc)
+	url := "http://" + svc.ServerAddress + "/register"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJSON))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -153,14 +160,11 @@ func (self Service) Add(pattern string, handle func([]byte) ([]byte, error)) {
 		panic("Could not register service! \n Reason: " + resp.Status)
 	}
 
-	fmt.Println("Registering successful!")
-	fmt.Println("Listening on port: ", strconv.Itoa(self.ServicePort))
-
-	http.HandleFunc("/", self.service(handle))
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(self.ServicePort), nil))
+	http.HandleFunc("/", svc.service(handle))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(svc.ServicePort), nil))
 }
 
-func (self Service) service(handle func([]byte) ([]byte, error)) func(w http.ResponseWriter, r *http.Request) {
+func (svc Service) service(handle func([]byte) ([]byte, error)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Only post requests allowed
@@ -177,14 +181,14 @@ func (self Service) service(handle func([]byte) ([]byte, error)) func(w http.Res
 		}
 
 		// Decode json
-		var request Message
+		var request serviceMessage
 		if err = json.Unmarshal(msgBody, &request); err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
 
 		// Check pattern
-		if !strings.Contains(request.Pattern, self.Pattern) {
+		if !strings.Contains(request.Pattern, svc.Pattern) {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
@@ -192,7 +196,6 @@ func (self Service) service(handle func([]byte) ([]byte, error)) func(w http.Res
 		payload, err := handle(msgBody)
 
 		if err != nil {
-			fmt.Println(err)
 			errorHandler(w, r, http.StatusInternalServerError)
 			return
 		}
@@ -200,13 +203,12 @@ func (self Service) service(handle func([]byte) ([]byte, error)) func(w http.Res
 		var result []byte
 
 		if request.ServiceRequest {
-			svcAnswer := ServiceAnswer{
-				Service: self,
+			svcAnswer := serviceAnswer{
+				Service: svc,
 				Payload: payload,
 			}
 			jsonSvcAnswer, err := json.Marshal(svcAnswer)
 			if err != nil {
-				fmt.Println(err)
 				errorHandler(w, r, http.StatusInternalServerError)
 				return
 			}
@@ -227,37 +229,43 @@ func (self Service) service(handle func([]byte) ([]byte, error)) func(w http.Res
 // ################################ Server #################################### //
 // ############################################################################ //
 
+// Server struct with a radix tree as local cache and redis client for state handeling
 type Server struct {
 	Cache      radix.Tree
 	Redis      *redis.Client
 	listenPort int
 }
 
+// NewServer initalises a server struct, establishes redis connection and returns
 func NewServer(redisAddress string, redisPassword string, redisDB int, listenPort int) *Server {
-	s := new(Server)
+	srv := new(Server)
 	cache := radix.New()
-	s.Cache = *cache
+	srv.Cache = *cache
 	r := redis.NewClient(&redis.Options{
 		Addr:     redisAddress,
-		Password: redisPassword, // no password set
-		DB:       redisDB,       // use default DB
+		Password: redisPassword,
+		DB:       redisDB,
 	})
 	_, err := r.Ping().Result()
 	if err != nil {
+		err = fmt.Errorf("Connection to redis failed!\n%w", err)
 		panic(err)
 	}
-	s.Redis = r
-	s.listenPort = listenPort
-	return s
+	srv.Redis = r
+	srv.listenPort = listenPort
+	log.Println("Nano server successfully initialised!")
+	log.Println("Listening on port:", srv.listenPort)
+	return srv
 }
 
-func (self Server) Listen() {
-	http.HandleFunc("/", self.proxy())
-	http.HandleFunc("/register", self.register())
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(self.listenPort), nil))
+// Listen function sets up 2 handler for serivce registering and requests
+func (srv Server) Listen() {
+	http.HandleFunc("/", srv.proxy())
+	http.HandleFunc("/register", srv.register())
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(srv.listenPort), nil))
 }
 
-func (self Server) register() func(w http.ResponseWriter, r *http.Request) {
+func (srv Server) register() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Only handle post requests
@@ -267,27 +275,31 @@ func (self Server) register() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Decode body
-		msg_body, err := ioutil.ReadAll(r.Body)
+		msgBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
-		var new_svc Service
-		if err := json.Unmarshal(msg_body, &new_svc); err != nil {
+		var newSvc Service
+		if err := json.Unmarshal(msgBody, &newSvc); err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
 
 		// Add service to database
-		address := new_svc.ServiceAddress
-		err = self.Redis.Set(new_svc.Pattern, address, 0).Err()
+		address := newSvc.ServiceAddress
+		err = srv.Redis.Set(newSvc.Pattern, address, 0).Err()
 		if err != nil {
 			errorHandler(w, r, http.StatusInternalServerError)
 			return
 		}
 
 		// Add service to local cache
-		go self.Cache.Insert(new_svc.Pattern, new_svc)
+		go srv.Cache.Insert(newSvc.Pattern, newSvc)
+
+		log.Println("New service registered!")
+		log.Println("Service address:", newSvc.ServiceAddress)
+		log.Println("Service pattern:", newSvc.Pattern)
 
 		// Answer request
 		w.WriteHeader(http.StatusOK)
@@ -296,7 +308,7 @@ func (self Server) register() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
+func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Only handle post requests
@@ -312,7 +324,7 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var msgPayload Message
+		var msgPayload serviceMessage
 		if err := json.Unmarshal([]byte(string(msgBody)), &msgPayload); err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
@@ -324,7 +336,7 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Lookup cache
-		cacheMatchedPattern, iface, cacheHit := self.Cache.LongestPrefix(msgPayload.Pattern)
+		cacheMatchedPattern, iface, cacheHit := srv.Cache.LongestPrefix(msgPayload.Pattern)
 
 		var address string
 		var respStatusCode int
@@ -334,7 +346,7 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 		if !cacheHit {
 
 			// Cache miss, lookup redis db
-			_, value, matching := redisLongestPrefixMatching(msgPayload.Pattern, self.Redis)
+			_, value, matching := redisLongestPrefixMatching(msgPayload.Pattern, srv.Redis)
 
 			if !matching {
 				errorHandler(w, r, http.StatusNotFound)
@@ -353,7 +365,6 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			if err != nil {
-				fmt.Println(err)
 				errorHandler(w, r, http.StatusInternalServerError)
 				return
 			}
@@ -367,7 +378,6 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 			}
 			respStatusCode = resp.StatusCode
 		} else {
-
 			// Cache hit, proxy request to service
 			svc, _ := iface.(Service)
 			address = svc.ServiceAddress
@@ -382,14 +392,11 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 			resp, err := client.Do(req)
 
 			if err != nil {
-
-				fmt.Println("Cache was wrong")
-
 				// Delete cache entry
-				go self.Cache.Delete(cacheMatchedPattern)
+				go srv.Cache.Delete(cacheMatchedPattern)
 
 				// Request to cache resolved address failed, second option db
-				matchedPattern, value, matching := redisLongestPrefixMatching(msgPayload.Pattern, self.Redis)
+				matchedPattern, value, matching := redisLongestPrefixMatching(msgPayload.Pattern, srv.Redis)
 				if !matching {
 					errorHandler(w, r, http.StatusNotFound)
 					return
@@ -407,11 +414,10 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 				client := &http.Client{}
 				resp, err = client.Do(req)
 				if err != nil {
-					go self.Redis.Del(matchedPattern)
+					go srv.Redis.Del(matchedPattern)
 					errorHandler(w, r, http.StatusNotFound)
 					return
 				}
-				fmt.Println("Second loopkup success!")
 				cacheNeedsUpdate = true
 			}
 			defer resp.Body.Close()
@@ -431,7 +437,7 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 				Pattern:        msgPayload.Pattern,
 				ServiceAddress: address,
 			}
-			go self.Cache.Insert(msgPayload.Pattern, newSvc)
+			go srv.Cache.Insert(msgPayload.Pattern, newSvc)
 		}
 
 		// Return result
@@ -443,7 +449,6 @@ func (self Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 }
 
 func redisLongestPrefixMatching(pattern string, r *redis.Client) (string, string, bool) {
-
 	var value string
 	var searchString string
 	var err error
@@ -461,14 +466,15 @@ func redisLongestPrefixMatching(pattern string, r *redis.Client) (string, string
 			break
 		}
 	}
+
 	if len(patternFields) == 0 {
 		return "", "", false
-	} else {
-		return searchString, value, true
 	}
+
+	return searchString, value, true
+
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
 	w.WriteHeader(status)
-	fmt.Fprint(w, status)
 }
