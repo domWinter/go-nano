@@ -127,7 +127,12 @@ func (svc Service) Act(jsonMsg []byte, pattern string) ([]byte, error) {
 	}
 
 	var result serviceAnswer
-	json.Unmarshal(body, &result)
+	err := json.Unmarshal(body, &result)
+
+	if err != nil {
+		arr := make([]byte, 0)
+		return arr, err
+	}
 
 	// Insert or update cache
 	if !cacheHit && result.Service.ServiceAddress != "" || cacheNeedsUpdate {
@@ -148,6 +153,9 @@ func (svc Service) Add(pattern string, handle func([]byte) ([]byte, error)) {
 	svcJSON, _ := json.Marshal(svc)
 	url := "http://" + svc.ServerAddress + "/register"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJSON))
+	if err != nil {
+		panic("Creation of request failed!")
+	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -220,8 +228,11 @@ func (svc Service) service(handle func([]byte) ([]byte, error)) func(w http.Resp
 		// Answer request
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(result)
-		return
+		_, err = w.Write(result)
+		if err != nil {
+			errorHandler(w, r, http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -248,7 +259,7 @@ func NewServer(redisAddress string, redisPassword string, redisDB int, listenPor
 	})
 	_, err := r.Ping().Result()
 	if err != nil {
-		err = fmt.Errorf("Connection to redis failed!\n%w", err)
+		err = fmt.Errorf("connection to redis failed!\n%w", err)
 		panic(err)
 	}
 	srv.Redis = r
@@ -281,7 +292,8 @@ func (srv Server) register() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var newSvc Service
-		if err := json.Unmarshal(msgBody, &newSvc); err != nil {
+		err = json.Unmarshal(msgBody, &newSvc)
+		if err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
@@ -303,8 +315,6 @@ func (srv Server) register() func(w http.ResponseWriter, r *http.Request) {
 
 		// Answer request
 		w.WriteHeader(http.StatusOK)
-		return
-
 	}
 }
 
@@ -421,6 +431,8 @@ func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 				cacheNeedsUpdate = true
 			}
 			defer resp.Body.Close()
+
+			defer
 			// Decode service response
 			body, err = ioutil.ReadAll(resp.Body)
 
@@ -443,8 +455,11 @@ func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 		// Return result
 		w.WriteHeader(respStatusCode)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(body)
-		return
+		_, err = w.Write(body)
+		if err != nil {
+			errorHandler(w, r, http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

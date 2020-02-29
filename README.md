@@ -1,5 +1,6 @@
 # Go nano
 ![Build](https://github.com/domWinter/go-nano/workflows/Build/badge.svg)
+![Static check](https://github.com/domWinter/go-nano/workflows/static%20check/badge.svg)
 
 **Go nano** - Framwork for building nanoservices (not monolithic microservices) in Go. 
 
