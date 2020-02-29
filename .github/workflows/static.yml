@@ -1,4 +1,4 @@
-name: static check
+name: Static check
 
 on: [push]
 

@@ -20,3 +20,8 @@ jobs:
 
     - name: Check running containers
       run: docker ps
+
+    - name: Post request to stack
+      uses: swinton/httpie.action@master
+      with:
+        args: ["POST", "127.0.0.1:8080", "Pattern=role:math,cmd:sum, Left=1, Right=2"]
