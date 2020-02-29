@@ -50,11 +50,11 @@ import (
 	"github.com/domWinter/go-nano"
 )
 
-type ServiceAnswer struct {
+type serviceAnswer struct {
 	Result bool
 }
 
-type ServiceRequest struct {
+type serviceRequest struct {
 	Pattern string `json:"Pattern"`
 	Value   int    `json:"Value"`
 }
@@ -63,10 +63,10 @@ func main() {
 	svc := nano.NewService("127.0.0.1", 8080, "127.0.0.1", 9999)
 
 	svc.Add("role:math,cmd:positive", func(body []byte) ([]byte, error) {
-		var msg ServiceRequest
+		var msg serviceRequest
         	json.Unmarshal(body, &msg)
 		result := msg.Value > 0
-		answer := ServiceAnswer{result}
+		answer := serviceAnswer{result}
 		answerJSON, _ := json.Marshal(answer)
 
 		return answerJSON, nil
@@ -88,13 +88,13 @@ curl -X POST http://127.0.0.1:9999/ \
 
         ...
 
-type Request struct {
+type serviceQuery struct {
 	Pattern        string
 	ServiceRequest bool
 	Value          int
 }
 
-requestJSON, _ := json.Marshal(Request{"role:math,cmd:positive", true, -1})
+requestJSON, _ := json.Marshal(serviceQuery{"role:math,cmd:positive", true, -1})
 requestResult, _ := svc.Act(requestJSON, "role:math,cmd:positive")
 
 var resultMap map[string]interface{}
