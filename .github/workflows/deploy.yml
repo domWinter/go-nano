@@ -8,19 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Build the docker-compose stack
-    - uses: actions/checkout@v2
+      uses: actions/checkout@v2
       working-directory: ./tests/docker
       run: docker-compose up -d
 
     - name: Sleep
-    - uses: jakejarvis/wait-action@master
+      uses: jakejarvis/wait-action@master
       with:
         time: '30s'
 
     - name: Check running containers
       run: docker ps
-
-    - name: Query app
-      uses: wei/curl@v1
-      with:
-        args: -X POST http://127.0.0.1:9090/ -H "Content-type: application/json" -d '{ "Pattern": "role:math,cmd:sum", "Left":1, "Right":9}'
