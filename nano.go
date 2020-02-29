@@ -169,7 +169,7 @@ func (svc Service) service(handle func([]byte) ([]byte, error)) func(w http.Resp
 
 		// Only post requests allowed
 		if r.Method != http.MethodPost {
-			errorHandler(w, r, http.StatusBadRequest)
+			errorHandler(w, r, http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -270,7 +270,7 @@ func (srv Server) register() func(w http.ResponseWriter, r *http.Request) {
 
 		// Only handle post requests
 		if r.Method != http.MethodPost {
-			errorHandler(w, r, http.StatusBadRequest)
+			errorHandler(w, r, http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -313,7 +313,7 @@ func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 
 		// Only handle post requests
 		if r.Method != http.MethodPost {
-			errorHandler(w, r, http.StatusBadRequest)
+			errorHandler(w, r, http.StatusMethodNotAllowed)
 			return
 		}
 

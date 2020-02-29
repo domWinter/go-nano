@@ -1,0 +1,20 @@
+version: '3'
+services:
+  nano-server:
+    build: ./nano-server
+    ports:
+    - "8080:8080"
+    links:
+    - redis
+    depends_on:
+      - "redis"
+  nano-service:
+    build: ./nano-service
+    ports:
+    - "9090:9090"
+    links:
+    - nano-server
+    depends_on:
+      - "nano-server"
+  redis:
+    image: redis
