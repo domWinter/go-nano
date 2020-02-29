@@ -189,7 +189,8 @@ func (svc Service) service(handle func([]byte) ([]byte, error)) func(w http.Resp
 
 		// Decode json
 		var request serviceMessage
-		if err = json.Unmarshal(msgBody, &request); err != nil {
+		err = json.Unmarshal(msgBody, &request)
+		if err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}

@@ -23,16 +23,6 @@ jobs:
       with:
         run: lint
 
-  shadow:
-    name: Shadow
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: check
-      uses: grandcolline/golang-github-actions@v1.1.0
-      with:
-        run: shadow
-
   staticcheck:
     name: StaticCheck
     runs-on: ubuntu-latest
@@ -42,14 +32,3 @@ jobs:
       uses: grandcolline/golang-github-actions@v1.1.0
       with:
         run: staticcheck
-
-  sec:
-    name: Sec
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: check
-      uses: grandcolline/golang-github-actions@v1.1.0
-      with:
-        run: sec
-        flags: "-exclude=_examples"
