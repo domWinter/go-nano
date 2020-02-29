@@ -7,7 +7,7 @@ jobs:
     name: Build docker compose stack
     runs-on: ubuntu-latest
     steps:
-    - name: Build the docker-compose stack
+    - name: Build the docker compose stack
       working-directory: ./tests/docker
       run: docker-compose up -d
 

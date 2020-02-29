@@ -1,6 +1,8 @@
 name: Build
+
 on: [push]
-jobs:       
+
+jobs:
   build:
     name: Build
     runs-on: ubuntu-latest

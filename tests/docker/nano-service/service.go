@@ -29,7 +29,7 @@ func main() {
 		err := json.Unmarshal(body, &msg)
 		if err != nil {
 			arr := make([]byte, 0)
-			return arr, errors.New("parsing error!")
+			return arr, errors.New("parsing error")
 		}
 
 		result := msg.Left + msg.Right
