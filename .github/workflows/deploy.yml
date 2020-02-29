@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Build the docker compose stack
-      run: docker-compose -d -f ./tests/docker/docker-compose.yml up
+      run: docker-compose -f ./tests/docker/docker-compose.yml up --detach
 
     - name: Sleep
       uses: jakejarvis/wait-action@master
