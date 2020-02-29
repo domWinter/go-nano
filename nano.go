@@ -432,7 +432,6 @@ func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 			}
 			defer resp.Body.Close()
 
-			defer
 			// Decode service response
 			body, err = ioutil.ReadAll(resp.Body)
 
