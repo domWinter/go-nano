@@ -73,7 +73,6 @@ func (svc Service) Act(jsonMsg []byte, pattern string) ([]byte, error) {
 		req.Header.Set("Content-Type", "application/json")
 		client := &http.Client{}
 		resp, err := client.Do(req)
-
 		if err != nil {
 			arr := make([]byte, 0)
 			return arr, err
@@ -335,7 +334,8 @@ func (srv Server) proxy() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var msgPayload serviceMessage
-		if err := json.Unmarshal([]byte(string(msgBody)), &msgPayload); err != nil {
+		err = json.Unmarshal([]byte(string(msgBody)), &msgPayload)
+		if err != nil {
 			errorHandler(w, r, http.StatusBadRequest)
 			return
 		}
