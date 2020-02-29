@@ -8,11 +8,11 @@ import (
 	"github.com/domWinter/go-nano"
 )
 
-type Answer struct {
+type answer struct {
 	Result int
 }
 
-type Message struct {
+type message struct {
 	Pattern string `json:"Pattern"`
 	Left    int    `json:"Left"`
 	Right   int    `json:"Right"`
@@ -25,16 +25,16 @@ func main() {
 
 		fmt.Println("New request!")
 
-		var msg Message
+		var msg message
 		err := json.Unmarshal(body, &msg)
 		if err != nil {
 			arr := make([]byte, 0)
-			return arr, errors.New("Parsing error!")
+			return arr, errors.New("parsing error!")
 		}
 
 		result := msg.Left + msg.Right
 
-		answer := Answer{result}
+		answer := answer{result}
 		b, _ := json.Marshal(answer)
 
 		return b, nil
