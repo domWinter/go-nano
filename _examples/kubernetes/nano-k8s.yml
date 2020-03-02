@@ -103,7 +103,7 @@ spec:
     protocol: TCP
     name: http
 ---
-  
+
 apiVersion: v1
 kind: Service
 metadata:

@@ -46,16 +46,19 @@ func NewService(ServiceAddress string, ServicePort int, ServerAddress string, Se
 	svc.Cache = *cache
 
 	svc.ServiceAddress = os.Getenv("NANO_SERVICE_ADDRESS")
-	log.Println("ServiceAddress from env: ", svc.ServiceAddress)
 	if svc.ServiceAddress == "" {
 		log.Println("Environment variable NANO_SERVICE_ADDRESS not set!")
 		svc.ServiceAddress = ServiceAddress + ":" + strconv.Itoa(ServicePort)
+	} else {
+		svc.ServiceAddress += ":" + strconv.Itoa(ServicePort)
 	}
 
 	svc.ServerAddress = os.Getenv("NANO_SERVER_ADDRESS")
 	if svc.ServerAddress == "" {
 		log.Println("Environment variable NANO_SERVER_ADDRESS not set!")
 		svc.ServerAddress = ServerAddress + ":" + strconv.Itoa(ServerPort)
+	} else {
+		svc.ServerAddress += ":" + strconv.Itoa(ServerPort)
 	}
 
 	svc.ServicePort = ServicePort
