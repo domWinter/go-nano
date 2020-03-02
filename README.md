@@ -82,9 +82,7 @@ curl -X POST http://127.0.0.1:9999/ \
 
 {"Result":true}
 ```
-
-## Query a service from within a service
-* Query another service inside the *add* function with:
+* Query a another service inside the *add* function with:
 ```go
 
         ...
@@ -106,20 +104,25 @@ fmt.Println(resultMap["Result"])
 
 ```
 
-## Details
-This framework uses pattern matching to route messages to the corresponding services.<br>
-A pattern in Go nano is defined as a comma seperated list of characters/words (e.g. 'role:math,cmd:sum' or 'a:1,b:2,c:3' or a,b).
+Checkout the \_examples folder for Docker and Kubernetes deployments.
 
+## Details
+This framework uses pattern matching for routing messages to the corresponding services.<br>
+A pattern in Go nano is defined as a comma seperated list of characters/words (e.g. 'role:math,cmd:sum' or 'a:1,b:2,c:3').
+
+### Service registering
 At first a new service registers itself at the nano server, which must have a valid connection to a redis database.
 The server stores the registering service pattern as key for the service address in redis and also fills a local radix tree cache for future lookups with the same mapping.
 
 ![Register](https://github.com/domWinter/go-nano/blob/master/_images/nano_register_service.png)
 
+### Service discovery 
 When a client (which can also be a service) queries another service with a specific pattern for the first time, the message is routed to the nano server, which does a lookup in the redis database or local cache and proxies the request to the corresponding service with the longest matching prefix. If a nano server did not find a requested service pattern in its local cache, it will always fill the cache after successfully processing the request.
 
 ![Query1](https://github.com/domWinter/go-nano/blob/master/_images/nano_query_service_1.png)
 
-Any requesting service also fills a local cache and will query a cached service directly instead of using the nano server every time.
+### Caching
+Any requesting service also fills a local cache with the pattern->service mapping and will query a cached service directly instead of using the nano server over and over.
 
 ![Query2](https://github.com/domWinter/go-nano/blob/master/_images/nano_query_service_2.png)
 
