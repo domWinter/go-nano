@@ -107,8 +107,8 @@ fmt.Println(resultMap["Result"])
 ```
 
 ## Details
-This framework uses pattern matching to route messages to the related services.
-A pattern in Go nano is defined as a comma seperated list of characters/word (e.g. 'role:math,cmd:sum' or 'a:1,b:2,c:3' or a,b).
+This framework uses pattern matching to route messages to the corresponding services.<br>
+A pattern in Go nano is defined as a comma seperated list of characters/words (e.g. 'role:math,cmd:sum' or 'a:1,b:2,c:3' or a,b).
 
 At first a new service registers itself at the nano server, which must have a valid connection to a redis database.
 The server stores the registering service pattern as key for the service address in redis and also fills a local radix tree cache for future lookups with the same mapping.
