@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -43,7 +44,20 @@ func NewService(ServiceAddress string, ServicePort int, ServerAddress string, Se
 	svc := new(Service)
 	cache := radix.New()
 	svc.Cache = *cache
-	svc.ServiceAddress = ServiceAddress + ":" + strconv.Itoa(ServicePort)
+
+	svc.ServiceAddress = os.Getenv("NANO_SERVICE_ADDRESS")
+	log.Println("ServiceAddress from env: ", svc.ServiceAddress)
+	if svc.ServiceAddress == "" {
+		log.Println("Environment variable NANO_SERVICE_ADDRESS not set!")
+		svc.ServiceAddress = ServiceAddress + ":" + strconv.Itoa(ServicePort)
+	}
+
+	svc.ServerAddress = os.Getenv("NANO_SERVER_ADDRESS")
+	if svc.ServerAddress == "" {
+		log.Println("Environment variable NANO_SERVER_ADDRESS not set!")
+		svc.ServerAddress = ServerAddress + ":" + strconv.Itoa(ServerPort)
+	}
+
 	svc.ServicePort = ServicePort
 	svc.ServerAddress = ServerAddress + ":" + strconv.Itoa(ServerPort)
 	svc.ServerPort = ServerPort

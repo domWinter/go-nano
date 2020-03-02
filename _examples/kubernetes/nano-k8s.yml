@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis
+        ports:
+        - containerPort: 6379
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nanoserver-deployment
+  labels:
+    app: nanoserver
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nanoserver
+  template:
+    metadata:
+      labels:
+        app: nanoserver
+    spec:
+      containers:
+      - name: nanoserver
+        image: domwinter/nano-server
+        ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nanoservice-deployment
+  labels:
+    app: nanoservice
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nanoservice
+  template:
+    metadata:
+      labels:
+        app: nanoservice
+    spec:
+      containers:
+      - name: nanoservice
+        image: domwinter/nano-service
+        ports:
+        - containerPort: 8081
+        env:
+        - name: NANO_SERVICE_ADDRESS
+          value: "nano-service"
+        - name: NANO_SERVER_ADDRESS
+          value: "nano-server"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  type: NodePort
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: http
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nano-server
+spec:
+  type: NodePort
+  selector:
+    app: nanoserver
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+  
+apiVersion: v1
+kind: Service
+metadata:
+  name: nano-service
+spec:
+  type: NodePort
+  selector:
+    app: nanoservice
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: http
+
