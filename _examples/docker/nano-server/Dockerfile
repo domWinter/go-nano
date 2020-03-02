@@ -18,5 +18,6 @@ RUN CGO_ENABLED=0 go build -o /go/server
 FROM scratch
 # Copy our static executable.
 COPY --from=builder /go/server /go/server
+EXPOSE 8080
 # Run the hello binary.
 ENTRYPOINT ["/go/server"]
