@@ -62,7 +62,6 @@ func NewService(ServiceAddress string, ServicePort int, ServerAddress string, Se
 	}
 
 	svc.ServicePort = ServicePort
-	svc.ServerAddress = ServerAddress + ":" + strconv.Itoa(ServerPort)
 	svc.ServerPort = ServerPort
 	log.Println("Nano service successfully initialised!")
 	log.Println("Listening on:", svc.ServiceAddress)

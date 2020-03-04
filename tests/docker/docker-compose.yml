@@ -1,20 +1,25 @@
 version: '3'
 services:
+  redis-service:
+    image: redis
+    ports:
+    - "6379:6379"
   nano-server:
     build: ./nano-server
     ports:
     - "8080:8080"
     links:
-    - redis
+    - redis-service
     depends_on:
-      - "redis"
+      - "redis-service"
   nano-service:
     build: ./nano-service
+    environment:
+    - NANO_SERVICE_ADDRESS=nano-service
+    - NANO_SERVER_ADDRESS=nano-server
     ports:
-    - "9090:9090"
+    - "8081:8081"
     links:
     - nano-server
     depends_on:
       - "nano-server"
-  redis:
-    image: redis

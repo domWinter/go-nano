@@ -43,7 +43,6 @@ func main() {
 
 		var act_r map[string]interface{}
 		json.Unmarshal(r_result, &act_r)
-		fmt.Println(act_r["Result"])
 
 		result := msg.Left + msg.Right
 

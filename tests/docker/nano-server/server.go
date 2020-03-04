@@ -5,6 +5,6 @@ import (
 )
 
 func main() {
-	server := nano.NewServer("redis:6379", "", 0, 8080)
+	server := nano.NewServer("redis-service:6379", "", 0, 8080)
 	server.Listen()
 }
