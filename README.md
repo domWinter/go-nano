@@ -83,7 +83,7 @@ curl -X POST http://127.0.0.1:9999/ \
 
 {"Result":true}
 ```
-* Query a another service inside the *add* function with:
+* Query another service inside the *Add()* function with:
 ```go
 
         ...
