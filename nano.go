@@ -143,7 +143,6 @@ func (svc Service) Act(jsonMsg []byte, pattern string) ([]byte, error) {
 
 	var result serviceAnswer
 	err := json.Unmarshal(body, &result)
-
 	if err != nil {
 		arr := make([]byte, 0)
 		return arr, err
@@ -154,6 +153,9 @@ func (svc Service) Act(jsonMsg []byte, pattern string) ([]byte, error) {
 		go svc.Cache.Insert(result.Service.Pattern, result.Service)
 	}
 
+	if result.Service.Pattern == "" {
+		return body, nil
+	}
 	return result.Payload, nil
 
 }
