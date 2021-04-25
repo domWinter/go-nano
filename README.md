@@ -13,9 +13,6 @@ services so that you can focus on building your busniess logic instead. In addit
 Go nano was built with the intention to be deployed on top of container orchestation systems like Kubernetes or Docker and thus supporting scaling via loadbalancing of the underleying
 platform.
 
-**Current Status:** *Under active development*
-
-
 
 ## Quick Start
 
